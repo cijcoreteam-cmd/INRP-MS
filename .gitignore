@@ -1,0 +1,44 @@
+# Node modules
+/node_modules/
+
+# Build output
+/dist/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Environment variables
+.env
+.env.*.local
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Debug files
+*.swp
+*.swo
+
+# IDE/editor settings
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Optional: coverage from testing tools like jest
+/coverage/
+
+# Optional: PM2 logs
+/.pm2/
+
+# Optional: Docker
+docker-compose.override.yml

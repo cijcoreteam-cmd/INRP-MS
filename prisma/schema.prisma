@@ -1,0 +1,118 @@
+// prisma/schema.prisma
+
+// ---------- Data Source ----------
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Prisma Client ----------
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ---------- Enums ----------
+enum Role {
+  EDITOR
+  REPORTER
+}
+
+enum ArticleStatus {
+  DRAFT
+  SUBMITTED
+  REVIEWED
+  REVERTED
+  PUBLISHED
+  SCHEDULED
+  POSTED
+}
+
+enum ArticleType {
+  TEXT
+  AUDIO
+  VIDEO
+}
+
+// ---------- Models ----------
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role
+  tokenVersion Int      @default(0) // bump to revoke refresh tokens
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  username     String? // 👈 add this (nullable if optional)
+
+  // Opposite relation fields
+  reporterArticles Article[]         @relation("ReporterArticles")
+  editorArticles   Article[]         @relation("EditorArticles")
+  revisions        ArticleRevision[]
+}
+
+model Article {
+  id      Int           @id @default(autoincrement())
+  title   String
+  status  ArticleStatus @default(DRAFT)
+  remarks String?
+
+  // Relations
+  reporter   User    @relation("ReporterArticles", fields: [reporterId], references: [id], onDelete: Cascade)
+  reporterId String
+  editor     User?   @relation("EditorArticles", fields: [editorId], references: [id], onDelete: SetNull)
+  editorId   String?
+
+  type String @default("TEXT")
+
+  // Common field for all types
+  content  Json // flexible: supports structured text, images, etc.
+  category String?
+  tags     Json?
+
+  // Type-specific fields
+  audioUrl     String?
+  videoUrl     String?
+  thumbnailUrl String? // for videos
+
+  // Scheduling field
+  scheduledPosts Json? @default("[]")
+  // Relations
+  revisions    ArticleRevision[]
+  publications ArticlePublication[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([reporterId])
+  @@index([editorId])
+}
+
+model ArticleRevision {
+  id        Int     @id @default(autoincrement())
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId Int
+
+  editor   User?   @relation(fields: [editorId], references: [id], onDelete: SetNull)
+  editorId String?
+
+  // Snapshot of the full article (type, content, media, remarks, etc.)
+  snapshot Json
+
+  createdAt DateTime @default(now())
+
+  @@index([articleId])
+  @@index([editorId])
+}
+
+model ArticlePublication {
+  id        Int     @id @default(autoincrement())
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId Int
+
+  platform     String
+  publishedUrl String?
+  publishedAt  DateTime @default(now())
+
+  @@index([articleId])
+  @@index([platform])
+}
