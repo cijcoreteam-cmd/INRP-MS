@@ -1030,4 +1030,6 @@ router.get("/editor-history-stats", authenticate, ctrl.getEditorHistoryStats);
  */
 router.get("/:id", authenticate, ctrl.getArticle);
 
+router.post("/sidbar-stats", authenticate, ctrl.getSidebarStats);
+
 export default router;

@@ -76,4 +76,16 @@ export const schedulePostCron = async () => {
   } catch (err: any) {
     console.error("Cron Error:", err.message);
   }
-};
+}
+
+export const   parseS3HttpUrl = (url: string) =>{
+  const parsed = new URL(url);
+
+  const hostParts = parsed.hostname.split(".");
+  const bucket = hostParts[0];
+
+  const key = parsed.pathname.replace(/^\/+/, "");
+
+  return { bucket, key };
+}
+

@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "postinstall": "prisma generate",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npx tsc",
     "start": "node dist/index.js",
@@ -23,6 +24,7 @@
   },
   "homepage": "https://github.com/EconomizingFutura/Newsroom-MS#readme",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.980.0",
     "@prisma/client": "^6.14.0",
     "axios": "^1.12.2",
     "bcryptjs": "^3.0.2",

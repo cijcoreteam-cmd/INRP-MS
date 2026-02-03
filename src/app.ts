@@ -8,14 +8,12 @@ import protectedRoutes from "./routes/protected.routes";
 import { errorHandler, notFound } from "./middleware/error";
 import { setupSwagger } from "./config/swagger";
 import articleRoutes from "./routes/article.routes";
-import { scheduledPostCron } from "./libs/cron";
+import { deleteArticleCron, scheduledPostCron } from "./libs/cron";
 
 const allowedOrigins = [
   "http://localhost:5173",
   "https://newsroom-fe-smoky.vercel.app",
   "http://localhost:5000",
-  "http://localhost:4000",
-
 ];
 
 export const createApp = () => {
@@ -44,6 +42,7 @@ export const createApp = () => {
   app.use("/api", protectedRoutes);
   app.use("/api/articles", articleRoutes);
   scheduledPostCron();
+  deleteArticleCron()
   app.use(notFound);
   app.use(errorHandler);
   return app;

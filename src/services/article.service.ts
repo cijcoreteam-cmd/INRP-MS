@@ -6,6 +6,8 @@ import {
   Prisma,
 } from "@prisma/client";
 import { scheduledPostArray } from "../types/types";
+import { deleteFromS3 } from "../config/s3Config";
+import { promise } from "zod";
 const prisma = new PrismaClient();
 
 // Reporter creates draft
@@ -381,6 +383,16 @@ export const deleteArticle = async (
   if (role === "REPORTER" && article.reporterId !== userId) {
     throw new Error("Not allowed to delete this article");
   }
+  const deleteUrl = article.audioUrl ?? article.videoUrl;
+  const thumbnailUrl = article.thumbnailUrl;
+
+  const tasks: Promise<any>[] = [];
+
+  if (deleteUrl) tasks.push(deleteFromS3(deleteUrl));
+  if (thumbnailUrl) tasks.push(deleteFromS3(thumbnailUrl));
+  await Promise.all(tasks);
+
+
 
   // Editor can delete any article
   await prisma.article.delete({
@@ -579,6 +591,7 @@ export const fetchScheduledPosts = async (
     createdAt: article.createdAt,
     articleType: article.type,
     type: article.status,
+    content: article.content,
     category: article.category,
     audioUrl: article.audioUrl,
     videoUrl: article.videoUrl,
@@ -635,7 +648,52 @@ export const fetchCalendarData = async () => {
       status: article.status,
       content: article.content,
       scheduledDate: sp.date,
+      scheduledTime: sp.time,
     }))
   );
-  return resultArticle;
+  return articles;
+};
+
+export const deleteOldArticlesService = async () => {
+
+  const now = new Date();
+
+    // const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+
+
+  const oneMonthAgo = new Date(now);
+  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+  const articles = await prisma.article.findMany({
+    where: {
+      createdAt: {
+        lte: oneMonthAgo,
+      },
+    },
+  });
+
+  if (!articles.length) {
+    return { message: "No old articles found", count: 0 };
+  }
+
+  for (const article of articles) {
+    const deleteUrl = article.audioUrl ?? article.videoUrl;
+    const thumbnailUrl = article.thumbnailUrl;
+
+    const tasks: Promise<any>[] = [];
+
+    if (deleteUrl) tasks.push(deleteFromS3(deleteUrl));
+    if (thumbnailUrl) tasks.push(deleteFromS3(thumbnailUrl));
+
+    await Promise.all(tasks);
+
+    await prisma.article.delete({
+      where: { id: article.id },
+    });
+  }
+
+  return {
+    message: "Old articles deleted successfully",
+    count: articles.length,
+  };
 };

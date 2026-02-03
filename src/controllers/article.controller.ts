@@ -267,9 +267,9 @@ export const getArticleHistory = async (req: AuthedRequest, res: Response) => {
         const ids = Array.isArray(authorsList)
           ? authorsList
           : String(authorsList)
-            .split(",")
-            .map((id) => id.trim())
-            .filter(Boolean);
+              .split(",")
+              .map((id) => id.trim())
+              .filter(Boolean);
 
         where.reporterId = { in: ids };
       }
@@ -587,5 +587,46 @@ export const getEditorHistoryStats = async (
     return res.status(500).json({
       error: error.message || "Failed to fetch editor history stats",
     });
+  }
+};
+
+export const getSidebarStats = async (req: AuthedRequest, res: Response) => {
+  try {
+    const { role } = req.body;
+    if (!role) {
+      return res.status(400).json({ message: "Role is required" });
+    }
+    let stats: Record<string, number> = {};
+    if (role === "REPORTER") {
+      const draft = await prisma.article.count({ where: { status: "DRAFT" } });
+      const reverted = await prisma.article.count({
+        where: { status: "REVERTED" },
+      });
+      stats = { DRAFT: draft, REVERTED: reverted };
+    } else if (role === "EDITOR") {
+      const submitted = await prisma.article.count({
+        where: { status: "SUBMITTED" },
+      });
+      const published = await prisma.article.count({
+        where: { status: "PUBLISHED" },
+      });
+      const scheduled = await prisma.article.count({
+        where: { status: "SCHEDULED" },
+      });
+      const reviewed = await prisma.article.count({
+        where: { status: "REVIEWED" },
+      });
+      stats = {
+        SUBMITTED: submitted,
+        PUBLISHED: published,
+        SCHEDULED: scheduled + reviewed,
+      };
+    } else {
+      return res.status(400).json({ message: "Invalid role" });
+    }
+    return res.status(200).json({ success: true, stats });
+  } catch (error) {
+    console.error("Error fetching sidebar stats:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
